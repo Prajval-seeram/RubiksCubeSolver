@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "search/DFS.h"
+#include "search/IDDFS.h"
 #include "search/Node.h"
 #include "cube/Moves.h"
 
@@ -11,32 +11,28 @@ int main()
     Node root;
 
     root.cube.applyMove(Move::R);
+root.cube.applyMove(Move::U);
+root.cube.applyMove(Move::F);
+root.cube.applyMove(Move::L);
+root.cube.applyMove(Move::R);
+root.cube.applyMove(Move::U);
 
-    DFS dfs;
 
-    vector<Move> solution;
 
-    bool found =
-        dfs.search(root,
-                   1,
-                   solution);
+    IDDFS iddfs;
 
-    cout << "Found: "
-         << found
-         << endl;
+    vector<Move> solution =
+        iddfs.solve(root, 10);
 
-    if(found)
+    cout << "Solution:\n";
+
+    for(Move move : solution)
     {
-        cout << "Solution:\n";
-
-        for(Move move : solution)
-        {
-            cout << moveToString(move)
-                 << " ";
-        }
-
-        cout << endl;
+        cout << moveToString(move)
+             << " ";
     }
+
+    cout << endl;
 
     return 0;
 }
