@@ -1,62 +1,37 @@
 #include <iostream>
-#include <chrono>
 
-#include "search/IDAStar.h"
-#include "search/Node.h"
-#include "search/SearchStats.h"
-#include "cube/Moves.h"
+#include "solver/Solver.h"
 
 using namespace std;
 
 int main()
 {
-    Node root;
+    Cube cube;
 
-    root.cube.applyMove(Move::R);
-    root.cube.applyMove(Move::U);
-    root.cube.applyMove(Move::F);
-    root.cube.applyMove(Move::L);
-    root.cube.applyMove(Move::R);
-    root.cube.applyMove(Move::U);
-    root.cube.applyMove(Move::F);
-    root.cube.applyMove(Move::L);
+    cube.applyMove(Move::R);
+    cube.applyMove(Move::U);
+    cube.applyMove(Move::F);
+    cube.applyMove(Move::L);
 
-    IDAStar ida;
+    Solver solver;
 
-    auto start =
-        chrono::high_resolution_clock::now();
+    SolveResult result =
+        solver.solve(cube);
 
-    vector<Move> solution =
-        ida.solve(root);
-
-    auto end =
-        chrono::high_resolution_clock::now();
-
-    SearchStats stats =
-        ida.getStats();
+    cout << "Solved: "
+         << result.solved
+         << "\n";
 
     cout << "Solution Length: "
-         << solution.size()
-         << "\n\n";
-
-    cout << "Solution:\n";
-
-    for(Move move : solution)
-    {
-        cout << moveToString(move)
-             << " ";
-    }
-
-    cout << "\n\n";
+         << result.solution.size()
+         << "\n";
 
     cout << "Nodes Expanded: "
-         << stats.nodesExpanded
+         << result.nodesExpanded
          << "\n";
 
     cout << "Solve Time: "
-         << chrono::duration_cast<
-                chrono::milliseconds
-            >(end - start).count()
+         << result.solveTimeMs
          << " ms\n";
 
     return 0;
