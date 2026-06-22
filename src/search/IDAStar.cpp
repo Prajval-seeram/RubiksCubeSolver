@@ -7,14 +7,18 @@ bool IDAStar::search(
     Node node,
     int threshold,
     vector<Move>& solution)
-{if(node.depth > 20)
 {
-    return false;
-}
+    stats.nodesExpanded++;
+
+    if(node.depth > 20)
+    {
+        return false;
+    }
+
     int cost =
-    node.depth +
-    heuristic.misplacedStickers(node.cube) / 8;
-    
+        node.depth +
+        heuristic.misplacedStickers(node.cube) / 8;
+
     if(cost > threshold)
     {
         return false;
@@ -46,8 +50,10 @@ bool IDAStar::search(
 
 vector<Move> IDAStar::solve(Node root)
 {
+    stats.nodesExpanded = 0;
+
     int threshold =
-    heuristic.misplacedStickers(root.cube) / 8;
+        heuristic.misplacedStickers(root.cube) / 8;
 
     vector<Move> solution;
 
@@ -64,4 +70,9 @@ vector<Move> IDAStar::solve(Node root)
 
         threshold++;
     }
+}
+
+SearchStats IDAStar::getStats() const
+{
+    return stats;
 }
