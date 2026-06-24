@@ -16,5 +16,6 @@ enum class Move
 };
 
 string moveToString(Move move);
+Move inverseMove(Move move);
 
 #endif

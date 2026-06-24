@@ -1,38 +1,49 @@
 #include <iostream>
+#include <chrono>
 
-#include "solver/Solver.h"
+#include "database/StateDatabase.h"
 
 using namespace std;
 
 int main()
 {
-    Cube cube;
+    StateDatabase db;
 
-    cube.applyMove(Move::R);
-    cube.applyMove(Move::U);
-    cube.applyMove(Move::F);
-    cube.applyMove(Move::L);
+    auto start =
+        chrono::high_resolution_clock::now();
 
-    Solver solver;
+    if(db.load("database.bin"))
+    {
+        cout
+            << "Database loaded!\n";
+    }
+    else
+    {
+        cout
+            << "Building database...\n";
 
-    SolveResult result =
-        solver.solve(cube);
+        db.build(6);
 
-    cout << "Solved: "
-         << result.solved
-         << "\n";
+        db.save("database.bin");
 
-    cout << "Solution Length: "
-         << result.solution.size()
-         << "\n";
+        cout
+            << "Database saved!\n";
+    }
 
-    cout << "Nodes Expanded: "
-         << result.nodesExpanded
-         << "\n";
+    auto end =
+        chrono::high_resolution_clock::now();
 
-    cout << "Solve Time: "
-         << result.solveTimeMs
-         << " ms\n";
+    cout
+        << "States: "
+        << db.size()
+        << "\n";
+
+    cout
+        << "Time: "
+        << chrono::duration_cast<
+            chrono::milliseconds
+        >(end - start).count()
+        << " ms\n";
 
     return 0;
 }

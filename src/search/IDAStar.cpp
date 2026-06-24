@@ -3,6 +3,13 @@
 
 using namespace std;
 
+IDAStar::IDAStar(
+    StateDatabase* db
+)
+{
+    database = db;
+}
+
 bool IDAStar::search(
     Node node,
     int threshold,
@@ -25,10 +32,29 @@ bool IDAStar::search(
     }
 
     if(node.cube.isSolved())
-    {
-        solution = node.path;
-        return true;
-    }
+{
+    solution = node.path;
+    return true;
+}
+
+if(database &&
+   database->contains(node.cube))
+{
+    solution = node.path;
+
+    vector<Move> tail =
+        database->getSolution(
+            node.cube
+        );
+
+    solution.insert(
+        solution.end(),
+        tail.begin(),
+        tail.end()
+    );
+
+    return true;
+}
 
     MoveGenerator generator;
 
