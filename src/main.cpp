@@ -1,22 +1,11 @@
-#include "cube/Cube.h"
-#include "cube/Moves.h"
+#include <iostream>
+#include <iomanip>
+#include <chrono>
+
 #include "solver/Solver.h"
-#include "solver/SolveResult.h"
 #include "utils/Scrambler.h"
 
-#include <iostream>
-#include <vector>
-
 using namespace std;
-
-void printMoves(const vector<Move>& moves)
-{
-    for (Move move : moves)
-    {
-        cout << moveToString(move) << " ";
-    }
-    cout << endl;
-}
 
 int main()
 {
@@ -25,55 +14,121 @@ int main()
 
     cout << "\n=========================================\n";
     cout << " RUBIK'S CUBE SOLVER BENCHMARK\n";
-    cout << "=========================================\n";
+    cout << "=========================================\n\n";
 
-    for (int depth = 8; depth <= 12; depth++)
+    const int testsPerDepth = 10;
+
+    for (int depth = 11; depth <= 13; depth++)
     {
-        cout << "\n\n#########################################\n";
-        cout << "SCRAMBLE LENGTH = " << depth << endl;
         cout << "#########################################\n";
+        cout << "SCRAMBLE LENGTH = " << depth << "\n";
+        cout << "#########################################\n\n";
 
-        for (int test = 1; test <= 3; test++)
+        long long totalTime = 0;
+        long long totalNodes = 0;
+        long long totalSolutionLength = 0;
+        int solved = 0;
+
+        long long bestTime = LLONG_MAX;
+        long long worstTime = 0;
+
+        for (int test = 1; test <= testsPerDepth; test++)
         {
             Cube cube;
 
             vector<Move> scramble =
                 scrambler.generateScramble(depth);
 
-            for (Move move : scramble)
-            {
-                cube.applyMove(move);
-            }
-
-            cout << "\n-----------------------------------------\n";
-            cout << "TEST #" << test << endl;
-            cout << "-----------------------------------------\n";
-
-            cout << "Scramble: ";
-            printMoves(scramble);
+            for (Move m : scramble)
+                cube.applyMove(m);
 
             SolveResult result =
                 solver.solve(cube);
 
-            cout << "\nSolved: "
-                 << (result.solved ? "YES" : "NO")
-                 << endl;
+            cout << "Test "
+                 << setw(2) << test
+                 << " | ";
 
-            cout << "Solution Length : "
-                 << result.solution.size()
-                 << endl;
+            if(result.solved)
+            {
+                solved++;
 
-            cout << "Nodes Expanded  : "
-                 << result.nodesExpanded
-                 << endl;
+                totalTime += result.solveTimeMs;
+                totalNodes += result.nodesExpanded;
+                totalSolutionLength += result.solution.size();
 
-            cout << "Solve Time (ms) : "
-                 << result.solveTimeMs
-                 << endl;
+                bestTime =
+                    min(bestTime,
+                        result.solveTimeMs);
 
-            cout << "Solution: ";
-            printMoves(result.solution);
+                worstTime =
+                    max(worstTime,
+                        result.solveTimeMs);
+
+                cout
+                    << "Time = "
+                    << setw(6)
+                    << result.solveTimeMs
+                    << " ms   ";
+
+                cout
+                    << "Nodes = "
+                    << setw(10)
+                    << result.nodesExpanded
+                    << "   ";
+
+                cout
+                    << "Len = "
+                    << result.solution.size();
+            }
+            else
+            {
+                cout << "FAILED";
+            }
+
+            cout << endl;
         }
+
+        cout << "\n------------- SUMMARY -------------\n";
+
+        cout
+            << "Solved            : "
+            << solved
+            << "/"
+            << testsPerDepth
+            << endl;
+
+        if(solved)
+        {
+            cout
+                << "Average Time      : "
+                << totalTime / solved
+                << " ms\n";
+
+            cout
+                << "Best Time         : "
+                << bestTime
+                << " ms\n";
+
+            cout
+                << "Worst Time        : "
+                << worstTime
+                << " ms\n";
+
+            cout
+                << "Average Nodes     : "
+                << totalNodes / solved
+                << endl;
+
+            cout
+                << "Average Sol Length: "
+                << fixed
+                << setprecision(2)
+                << (double)totalSolutionLength / solved
+                << endl;
+        }
+
+        cout << "\n\n";
     }
 
     return 0;

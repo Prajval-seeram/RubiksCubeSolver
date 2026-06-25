@@ -4,7 +4,6 @@ project(RubiksCubeSolver)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_subdirectory(raylib)
 
 add_executable(
     RubiksCubeSolver
@@ -28,8 +27,6 @@ add_executable(
 
     src/utils/Scrambler.cpp
 
-    src/visualizer/Visualizer.cpp
-    src/visualizer/Renderer.cpp
 )
 
 target_link_libraries(

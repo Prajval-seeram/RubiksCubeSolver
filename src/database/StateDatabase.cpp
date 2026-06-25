@@ -14,11 +14,29 @@ struct BFSNode
 {
     Cube cube;
     int depth;
+    Move lastMove;
 };
 
 StateKey StateDatabase::getKey(const Cube& cube) const
 {
-    return hash<string>{}(cube.encodeState());
+    uint64_t h = 14695981039346656037ULL;
+    const uint64_t p = 1099511628211ULL;
+
+    const char* fcs[6] = { 
+        cube.getUFacePtr(), cube.getDFacePtr(), cube.getFFacePtr(), 
+        cube.getBFacePtr(), cube.getLFacePtr(), cube.getRFacePtr() 
+    };
+
+    for (int f = 0; f < 6; ++f) 
+    {
+        for (int i = 0; i < 9; ++i) 
+        {
+            h ^= static_cast<uint64_t>(fcs[f][i]);
+            h *= p;
+        }
+    }
+    
+    return h;
 }
 
 size_t StateDatabase::size() const
@@ -28,41 +46,29 @@ size_t StateDatabase::size() const
 
 bool StateDatabase::contains(const Cube& cube) const
 {
-    return lookup.find(getKey(cube))
-        != lookup.end();
+    return lookup.find(getKey(cube)) != lookup.end();
 }
 
-vector<Move> StateDatabase::getSolution(
-    const Cube& cube
-) const
+vector<Move> StateDatabase::getSolution(const Cube& cube) const
 {
-    vector<Move> solution;
-
-    auto it =
-        lookup.find(getKey(cube));
+    vector<Move> sol;
+    auto it = lookup.find(getKey(cube));
 
     if(it == lookup.end())
     {
-        return solution;
+        return sol;
     }
 
-    uint32_t index =
-        it->second;
+    uint32_t idx = it->second;
 
-    while(index != 0)
+    while(idx != 0)
     {
-        const DBEntry& entry =
-            entries[index];
-
-        solution.push_back(
-            entry.moveToParent
-        );
-
-        index =
-            entry.parentIndex;
+        const DBEntry& e = entries[idx];
+        sol.push_back(e.moveToParent);
+        idx = e.parentIndex;
     }
 
-    return solution;
+    return sol;
 }
 
 void StateDatabase::build(int maxDepth)
@@ -71,167 +77,84 @@ void StateDatabase::build(int maxDepth)
     entries.clear();
     keys.clear();
 
+    lookup.reserve(9000000);
+    entries.reserve(9000000);
+    keys.reserve(9000000);
+
     Cube solved;
-
-    StateKey rootKey =
-        getKey(solved);
-
-    lookup[rootKey] = 0;
-
-    entries.push_back(
-    {
-        0,
-        Move::U
-    });
-
-    keys.push_back(rootKey);
+    StateKey rKey = getKey(solved);
+    lookup[rKey] = 0;
+    entries.push_back({0, Move::U});
+    keys.push_back(rKey);
 
     queue<BFSNode> q;
+    q.push({solved, 0, Move::U});
 
-    q.push(
-    {
-        solved,
-        0
-    });
-
-    MoveGenerator generator;
+    MoveGenerator gen;
 
     while(!q.empty())
     {
-        BFSNode current =
-            q.front();
-
+        BFSNode curr = q.front();
         q.pop();
 
-        if(current.depth >= maxDepth)
+        if(curr.depth >= maxDepth)
         {
             continue;
         }
 
-        Node currentNode;
+        uint32_t currIdx = lookup[getKey(curr.cube)];
 
-        currentNode.cube =
-            current.cube;
+        Node n;
+        n.cube = curr.cube;
+        n.depth = curr.depth;
+        n.lastMove = curr.lastMove;
 
-        currentNode.depth =
-            current.depth;
+        vector<Node> ch = gen.generateChildren(n);
 
-        vector<Node> children =
-            generator.generateChildren(
-                currentNode
-            );
-
-        uint32_t currentIndex =
-            lookup[
-                getKey(current.cube)
-            ];
-
-        for(auto& child : children)
+        for(const Node& c : ch)
         {
-            StateKey key =
-                getKey(child.cube);
+            StateKey k = getKey(c.cube);
 
-            if(
-                lookup.find(key)
-                != lookup.end()
-            )
+            if(lookup.find(k) != lookup.end())
             {
                 continue;
             }
 
-            uint32_t childIndex =
-                static_cast<uint32_t>(
-                    entries.size()
-                );
+            uint32_t chIdx = static_cast<uint32_t>(entries.size());
+            lookup[k] = chIdx;
+            entries.push_back({currIdx, inverseMove(c.lastMove)});
+            keys.push_back(k);
 
-            lookup[key] =
-                childIndex;
-
-            entries.push_back(
-            {
-                currentIndex,
-                inverseMove(
-                    child.lastMove
-                )
-            });
-
-            keys.push_back(key);
-
-            q.push(
-            {
-                child.cube,
-                current.depth + 1
-            });
+            q.push({c.cube, c.depth, c.lastMove});
         }
     }
 
-    cout
-        << "States Stored: "
-        << lookup.size()
-        << "\n";
+    cout << "States Stored: " << lookup.size() << "\n";
 }
 
-bool StateDatabase::save(
-    const string& filename
-) const
+bool StateDatabase::save(const string& filename) const
 {
-    ofstream out(
-        filename,
-        ios::binary
-    );
+    ofstream out(filename, ios::binary);
 
     if(!out)
     {
         return false;
     }
 
-    uint64_t entryCount =
-        entries.size();
+    uint64_t eCount = entries.size();
+    uint64_t kCount = keys.size();
 
-    uint64_t keyCount =
-        keys.size();
-
-    out.write(
-        reinterpret_cast<const char*>(
-            &entryCount
-        ),
-        sizeof(entryCount)
-    );
-
-    out.write(
-        reinterpret_cast<const char*>(
-            entries.data()
-        ),
-        entryCount *
-        sizeof(DBEntry)
-    );
-
-    out.write(
-        reinterpret_cast<const char*>(
-            &keyCount
-        ),
-        sizeof(keyCount)
-    );
-
-    out.write(
-        reinterpret_cast<const char*>(
-            keys.data()
-        ),
-        keyCount *
-        sizeof(StateKey)
-    );
+    out.write(reinterpret_cast<const char*>(&eCount), sizeof(eCount));
+    out.write(reinterpret_cast<const char*>(entries.data()), eCount * sizeof(DBEntry));
+    out.write(reinterpret_cast<const char*>(&kCount), sizeof(kCount));
+    out.write(reinterpret_cast<const char*>(keys.data()), kCount * sizeof(StateKey));
 
     return out.good();
 }
 
-bool StateDatabase::load(
-    const string& filename
-)
+bool StateDatabase::load(const string& filename)
 {
-    ifstream in(
-        filename,
-        ios::binary
-    );
+    ifstream in(filename, ios::binary);
 
     if(!in)
     {
@@ -242,59 +165,35 @@ bool StateDatabase::load(
     entries.clear();
     keys.clear();
 
-    uint64_t entryCount;
+    uint64_t eCount;
 
-    if(!in.read(
-        reinterpret_cast<char*>(
-            &entryCount
-        ),
-        sizeof(entryCount)
-    ))
+    if(!in.read(reinterpret_cast<char*>(&eCount), sizeof(eCount)))
     {
         return false;
     }
 
-    entries.resize(entryCount);
+    entries.resize(eCount);
 
-    if(!in.read(
-        reinterpret_cast<char*>(
-            entries.data()
-        ),
-        entryCount *
-        sizeof(DBEntry)
-    ))
+    if(!in.read(reinterpret_cast<char*>(entries.data()), eCount * sizeof(DBEntry)))
     {
         return false;
     }
 
-    uint64_t keyCount;
+    uint64_t kCount;
 
-    if(!in.read(
-        reinterpret_cast<char*>(
-            &keyCount
-        ),
-        sizeof(keyCount)
-    ))
+    if(!in.read(reinterpret_cast<char*>(&kCount), sizeof(kCount)))
     {
         return false;
     }
 
-    keys.resize(keyCount);
+    keys.resize(kCount);
 
-    if(!in.read(
-        reinterpret_cast<char*>(
-            keys.data()
-        ),
-        keyCount *
-        sizeof(StateKey)
-    ))
+    if(!in.read(reinterpret_cast<char*>(keys.data()), kCount * sizeof(StateKey)))
     {
         return false;
     }
 
-    for(uint32_t i = 0;
-        i < keys.size();
-        i++)
+    for(uint32_t i = 0; i < keys.size(); i++)
     {
         lookup[keys[i]] = i;
     }
@@ -302,33 +201,23 @@ bool StateDatabase::load(
     return true;
 }
 
-int StateDatabase::getDistance(
-    const Cube& cube
-) const
+int StateDatabase::getDistance(const Cube& cube) const
 {
-    auto it =
-        lookup.find(
-            getKey(cube)
-        );
+    auto it = lookup.find(getKey(cube));
 
     if(it == lookup.end())
     {
         return -1;
     }
 
-    int distance = 0;
+    int dist = 0;
+    uint32_t idx = it->second;
 
-    uint32_t index =
-        it->second;
-
-    while(index != 0)
+    while(idx != 0)
     {
-        distance++;
-
-        index =
-            entries[index]
-            .parentIndex;
+        dist++;
+        idx = entries[idx].parentIndex;
     }
 
-    return distance;
+    return dist;
 }

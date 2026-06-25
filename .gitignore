@@ -4,7 +4,7 @@ build/
 .idea/
 CMakeFiles/
 CMakeCache.txt
-raylib/
-test.cpp
-test.exe
-*.bin
+database.bin
+tests/build/
+benchmark
+benchmark.exe

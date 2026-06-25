@@ -1,5 +1,6 @@
 #include "IDAStar.h"
 #include "MoveGenerator.h"
+#include <algorithm>
 
 using namespace std;
 
@@ -39,8 +40,23 @@ bool IDAStar::search(Node n, int t, vector<Move>& s) {
     MoveGenerator m;
     vector<Node> k = m.generateChildren(n);
 
-    for (const Node& p : k) {
-        if (search(p, t, s)) return true;
+    struct O {
+        int s;
+        size_t i;
+    };
+
+    vector<O> v;
+    v.reserve(k.size());
+    for (size_t i = 0; i < k.size(); ++i) {
+        v.push_back({heuristic.misplacedStickers(k[i].cube) / 4, i});
+    }
+
+    sort(v.begin(), v.end(), [](const O& a, const O& b) {
+        return a.s < b.s;
+    });
+
+    for (const auto& e : v) {
+        if (search(k[e.i], t, s)) return true;
     }
 
     return false;
