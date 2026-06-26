@@ -20,7 +20,7 @@ Solver::Solver()
         cout
             << "Building database...\n";
 
-        database.build(6);
+        database.build(7);
 
         database.save("database.bin");
 

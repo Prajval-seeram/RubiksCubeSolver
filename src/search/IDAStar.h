@@ -12,12 +12,10 @@ class IDAStar
 {
 private:
     Heuristic heuristic;
-
     SearchStats stats;
-
     StateDatabase* database;
 
-    bool search(Node node,
+    bool search(Node& node,
                 int threshold,
                 vector<Move>& solution);
 

@@ -1,6 +1,9 @@
 #include <iostream>
 #include <iomanip>
 #include <chrono>
+#include <fstream>
+#include <ctime>
+#include <climits>
 
 #include "solver/Solver.h"
 #include "utils/Scrambler.h"
@@ -12,9 +15,24 @@ int main()
     Solver solver;
     Scrambler scrambler;
 
+    ofstream bench("docs/benchmarks.md", ios::app);
+
+    auto now = chrono::system_clock::now();
+    time_t nowTime = chrono::system_clock::to_time_t(now);
+
+    bench << "\n---\n\n";
+    bench << "# Benchmark Run\n\n";
+    bench << "**Date:** "
+          << put_time(localtime(&nowTime), "%Y-%m-%d %H:%M:%S")
+          << "\n\n";
+
     cout << "\n=========================================\n";
     cout << " RUBIK'S CUBE SOLVER BENCHMARK\n";
     cout << "=========================================\n\n";
+
+    bench << "=========================================\n";
+    bench << "RUBIK'S CUBE SOLVER BENCHMARK\n";
+    bench << "=========================================\n\n";
 
     const int testsPerDepth = 10;
 
@@ -23,6 +41,13 @@ int main()
         cout << "#########################################\n";
         cout << "SCRAMBLE LENGTH = " << depth << "\n";
         cout << "#########################################\n\n";
+
+        bench << "## Scramble Length = "
+              << depth
+              << "\n\n";
+
+        bench << "| Test | Time (ms) | Nodes Expanded | Solution Length |\n";
+        bench << "|----:|----------:|---------------:|----------------:|\n";
 
         long long totalTime = 0;
         long long totalNodes = 0;
@@ -46,10 +71,11 @@ int main()
                 solver.solve(cube);
 
             cout << "Test "
-                 << setw(2) << test
+                 << setw(2)
+                 << test
                  << " | ";
 
-            if(result.solved)
+            if (result.solved)
             {
                 solved++;
 
@@ -65,25 +91,36 @@ int main()
                     max(worstTime,
                         result.solveTimeMs);
 
-                cout
-                    << "Time = "
-                    << setw(6)
-                    << result.solveTimeMs
-                    << " ms   ";
+                cout << "Time = "
+                     << setw(6)
+                     << result.solveTimeMs
+                     << " ms   ";
 
-                cout
-                    << "Nodes = "
-                    << setw(10)
-                    << result.nodesExpanded
-                    << "   ";
+                cout << "Nodes = "
+                     << setw(10)
+                     << result.nodesExpanded
+                     << "   ";
 
-                cout
-                    << "Len = "
-                    << result.solution.size();
+                cout << "Len = "
+                     << result.solution.size();
+
+                bench << "| "
+                      << test
+                      << " | "
+                      << result.solveTimeMs
+                      << " | "
+                      << result.nodesExpanded
+                      << " | "
+                      << result.solution.size()
+                      << " |\n";
             }
             else
             {
                 cout << "FAILED";
+
+                bench << "| "
+                      << test
+                      << " | FAILED | FAILED | FAILED |\n";
             }
 
             cout << endl;
@@ -91,45 +128,71 @@ int main()
 
         cout << "\n------------- SUMMARY -------------\n";
 
-        cout
-            << "Solved            : "
-            << solved
-            << "/"
-            << testsPerDepth
-            << endl;
+        cout << "Solved            : "
+             << solved
+             << "/"
+             << testsPerDepth
+             << endl;
 
-        if(solved)
+        bench << "\n### Summary\n\n";
+
+        bench << "- Solved: "
+              << solved
+              << "/"
+              << testsPerDepth
+              << "\n";
+
+        if (solved)
         {
-            cout
-                << "Average Time      : "
-                << totalTime / solved
-                << " ms\n";
+            cout << "Average Time      : "
+                 << totalTime / solved
+                 << " ms\n";
 
-            cout
-                << "Best Time         : "
-                << bestTime
-                << " ms\n";
+            cout << "Best Time         : "
+                 << bestTime
+                 << " ms\n";
 
-            cout
-                << "Worst Time        : "
-                << worstTime
-                << " ms\n";
+            cout << "Worst Time        : "
+                 << worstTime
+                 << " ms\n";
 
-            cout
-                << "Average Nodes     : "
-                << totalNodes / solved
-                << endl;
+            cout << "Average Nodes     : "
+                 << totalNodes / solved
+                 << endl;
 
-            cout
-                << "Average Sol Length: "
-                << fixed
-                << setprecision(2)
-                << (double)totalSolutionLength / solved
-                << endl;
+            cout << "Average Sol Length: "
+                 << fixed
+                 << setprecision(2)
+                 << (double)totalSolutionLength / solved
+                 << endl;
+
+            bench << "- Average Time: "
+                  << totalTime / solved
+                  << " ms\n";
+
+            bench << "- Best Time: "
+                  << bestTime
+                  << " ms\n";
+
+            bench << "- Worst Time: "
+                  << worstTime
+                  << " ms\n";
+
+            bench << "- Average Nodes: "
+                  << totalNodes / solved
+                  << "\n";
+
+            bench << "- Average Solution Length: "
+                  << fixed
+                  << setprecision(2)
+                  << (double)totalSolutionLength / solved
+                  << "\n\n";
         }
 
         cout << "\n\n";
     }
+
+    bench.close();
 
     return 0;
 }

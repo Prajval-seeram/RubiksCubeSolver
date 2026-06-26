@@ -171,5 +171,5 @@ int Heuristic::misplacedStickers(const Cube& cube)
     cs += cD[6][c2i[(uint8_t)D[6]]*36 + c2i[(uint8_t)B[8]]*6 + c2i[(uint8_t)L[6]]];
     cs += cD[7][c2i[(uint8_t)D[8]]*36 + c2i[(uint8_t)B[6]]*6 + c2i[(uint8_t)R[8]]];
 
-    return (max(es, cs) + 3) / 4;
+    return max(es, cs);
 }

@@ -77,9 +77,9 @@ void StateDatabase::build(int maxDepth)
     entries.clear();
     keys.clear();
 
-    lookup.reserve(9000000);
-    entries.reserve(9000000);
-    keys.reserve(9000000);
+    lookup.reserve(110000000);
+    entries.reserve(110000000);
+    keys.reserve(110000000);
 
     Cube solved;
     StateKey rKey = getKey(solved);
